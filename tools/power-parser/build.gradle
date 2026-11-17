@@ -1,0 +1,38 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+repositories {
+    maven {
+        url = uri('https://frcmaven.wpi.edu/artifactory/release/')
+    }
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'edu.wpi.first.wpiutil:wpiutil-java:2026.2.1'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+application {
+    mainClass = 'org.biocore.power.Main'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.named('jar') {
+    manifest {
+        attributes 'Main-Class': 'org.biocore.power.Main'
+    }
+}

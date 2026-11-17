@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Simple, readable FRC match power reports: energy by subsystem, motor energy, voltage sags, and peak draw."
+    />
+    <title>Biocore Power Logs</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Biocore Power Logs home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Biocore Power Logs</span>
+      </a>
+      <div class="controls">
+        <label class="select-label">
+          <span>Session</span>
+          <select id="session-select" aria-label="Choose a match session"></select>
+        </label>
+        <div class="mode-toggle" role="tablist" aria-label="Report detail level">
+          <button id="mode-simple" role="tab" aria-selected="true" aria-controls="simple-mode">
+            Simple
+          </button>
+          <button id="mode-complex" role="tab" aria-selected="false" aria-controls="complex-mode">
+            Complex
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="app">
+      <section id="loading" class="state" aria-live="polite">Loading power logs…</section>
+      <section id="error" class="state error hidden" role="alert"></section>
+
+      <section id="content" class="hidden">
+        <header class="match-header">
+          <div>
+            <p class="eyebrow" id="match-eyebrow">Match report</p>
+            <h1 id="match-title">Power report</h1>
+            <p class="subtitle" id="match-subtitle"></p>
+          </div>
+          <div class="match-meta" id="match-meta"></div>
+        </header>
+
+        <div id="quality-banner" class="banner hidden" role="status"></div>
+
+        <section id="simple-mode" aria-labelledby="simple-heading">
+          <h2 id="simple-heading" class="sr-only">Simple report</h2>
+
+          <div class="tiles" id="summary-tiles">
+            <article class="tile">
+              <p class="tile-label">Energy used</p>
+              <p class="tile-value"><span id="tile-energy">—</span><span class="unit">Wh</span></p>
+              <p class="tile-note" id="tile-energy-note">while enabled</p>
+            </article>
+            <article class="tile">
+              <p class="tile-label">Time enabled</p>
+              <p class="tile-value"><span id="tile-time">—</span><span class="unit">s</span></p>
+              <p class="tile-note" id="tile-time-note">sum of enabled intervals</p>
+            </article>
+            <article class="tile">
+              <p class="tile-label">Lowest voltage</p>
+              <p class="tile-value"><span id="tile-voltage">—</span><span class="unit">V</span></p>
+              <p class="tile-note">100 ms average</p>
+            </article>
+            <article class="tile">
+              <p class="tile-label">Sag events</p>
+              <p class="tile-value"><span id="tile-sags">—</span></p>
+              <p class="tile-note" id="tile-sag-note">below 9.0 V for 100 ms</p>
+            </article>
+            <article class="tile">
+              <p class="tile-label">Peak draw</p>
+              <p class="tile-value"><span id="tile-current">—</span><span class="unit">A</span></p>
+              <p class="tile-note">100 ms average</p>
+            </article>
+            <article class="tile">
+              <p class="tile-label">Peak power</p>
+              <p class="tile-value"><span id="tile-power">—</span><span class="unit">W</span></p>
+              <p class="tile-note">100 ms average</p>
+            </article>
+          </div>
+
+          <div class="panel timeline-panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Match timeline</h2>
+                <p>Battery voltage over the log. Shaded areas are voltage sags.</p>
+              </div>
+              <span class="legend-note"><span class="swatch sag"></span> sag</span>
+            </div>
+            <div id="simple-timeline" class="timeline"></div>
+            <p class="timeline-caption" id="timeline-caption"></p>
+          </div>
+
+          <div class="grid-2">
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Energy by subsystem</h2>
+                  <p>Where the battery energy went while enabled.</p>
+                </div>
+              </div>
+              <div id="subsystem-bars" class="bars"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Energy by motor</h2>
+                  <p>Battery-side energy for each registered motor. Percent is of the motor's subsystem.</p>
+                </div>
+              </div>
+              <div id="motor-bars" class="bars"></div>
+            </section>
+          </div>
+
+          <section class="panel help-panel">
+            <h2>What am I looking at?</h2>
+            <div class="help-grid">
+              <div>
+                <h3>Energy</h3>
+                <p>
+                  Energy is battery voltage × supply current, added up only while the robot is
+                  enabled. It is shown in watt-hours (Wh).
+                </p>
+              </div>
+              <div>
+                <h3>Supply current</h3>
+                <p>
+                  The battery-side current a device draws. It is the right number for power
+                  budgeting; motor-side stator current is not used here.
+                </p>
+              </div>
+              <div>
+                <h3>Sag</h3>
+                <p>
+                  A sag starts when voltage drops below 9.0 V and lasts at least 100 ms. It ends
+                  after voltage recovers above 9.2 V.
+                </p>
+              </div>
+              <div>
+                <h3>Peak draw</h3>
+                <p>
+                  The highest 100 ms average current or power. A short 100 ms window avoids
+                  reporting a single noisy sample as a peak.
+                </p>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section id="complex-mode" class="hidden" aria-labelledby="complex-heading">
+          <h2 id="complex-heading" class="sr-only">Complex report</h2>
+
+          <div class="chart-grid">
+            <section class="panel chart-panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Battery voltage</h2>
+                  <p>Enabled time only. The dashed line is the sag threshold.</p>
+                </div>
+              </div>
+              <div id="chart-voltage" class="chart"></div>
+            </section>
+            <section class="panel chart-panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Total current</h2>
+                  <p>PDH total when available; otherwise the sum of registered motors.</p>
+                </div>
+              </div>
+              <div id="chart-current" class="chart"></div>
+            </section>
+            <section class="panel chart-panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Total power</h2>
+                  <p>Battery voltage × total current.</p>
+                </div>
+              </div>
+              <div id="chart-power" class="chart"></div>
+            </section>
+            <section class="panel chart-panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Power by subsystem</h2>
+                  <p>One line per subsystem. Gaps are shown as breaks, not zero.</p>
+                </div>
+              </div>
+              <div id="chart-subsystems" class="chart"></div>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Subsystem detail</h2>
+                <p>Energy, peak, and average values while enabled.</p>
+              </div>
+            </div>
+            <div id="subsystem-table" class="table-wrap"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Motor detail</h2>
+                <p>Per-motor battery-side energy and current.</p>
+              </div>
+            </div>
+            <div id="motor-table" class="table-wrap"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Voltage sags</h2>
+                <p>Each episode below the sag threshold, including duration and depth.</p>
+              </div>
+            </div>
+            <div id="sag-table" class="table-wrap"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Data quality</h2>
+                <p>What the parser found in the raw log.</p>
+              </div>
+              <a id="raw-log-link" class="raw-link hidden" href="#" rel="noopener">Download raw log</a>
+            </div>
+            <div id="quality-list" class="quality-list"></div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Biocore power pipeline. Metrics are computed at full log resolution; charts are
+        downsampled for speed.
+      </p>
+      <p id="footer-thresholds"></p>
+    </footer>
+
+    <script src="assets/charts.js"></script>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "sag_threshold_v": 9.0,
+  "sag_recover_v": 9.2,
+  "sag_min_ms": 100,
+  "peak_window_ms": 100,
+  "min_voltage_window_ms": 100,
+  "gap_ms": 200,
+  "grid_hz": 50,
+  "series_hz": 10,
+  "session_merge_gap_s": 30,
+  "clamp_negative_current": true,
+  "parser_version": 1,
+  "required_keys": [
+    "Power/Battery/Voltage",
+    "Power/State/Enabled"
+  ]
+}

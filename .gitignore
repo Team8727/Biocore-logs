@@ -1,0 +1,14 @@
+.upload-queue/
+.upload-archive/
+.upload-state.json
+.logs-branch/
+.logs-worktree/
+config/uploader.json
+node_modules/
+.build/
+.gradle/
+tools/power-parser/build/
+tools/power-parser/.gradle/
+__pycache__/
+.DS_Store
+otherteamsloggingmethodsreadme.md

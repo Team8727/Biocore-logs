@@ -1,0 +1,8 @@
+* text=auto
+
+*.wpilog binary
+*.wpilog.xz binary
+*.xz binary
+*.jar binary
+*.command text eol=lf
+*.bat text eol=crlf

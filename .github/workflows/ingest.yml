@@ -1,0 +1,90 @@
+name: Ingest power logs
+
+on:
+  push:
+    branches: [logs]
+    paths:
+      - "logs/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: power-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch logs branch
+        run: git fetch origin logs:refs/remotes/origin/logs
+
+      - name: Checkout logs worktree
+        run: git worktree add .logs-worktree origin/logs
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build and test parser
+        working-directory: tools/power-parser
+        run: ./gradlew test installDist
+
+      - name: Select new logs
+        run: |
+          python3 tools/ci_select_logs.py \
+            --logs-worktree .logs-worktree \
+            --processed data/processed.json \
+            --out-dir .build/incoming \
+            --manifest .build/new-logs.tsv \
+            --raw-base-url "https://raw.githubusercontent.com/${{ github.repository }}/logs/" \
+            --parser-version 1
+
+      - name: Parse new logs
+        run: |
+          if [ ! -s .build/new-logs.tsv ]; then
+            echo "No new logs to parse."
+            exit 0
+          fi
+          while IFS=$'\t' read -r input raw_url; do
+            tools/power-parser/build/install/power-parser/bin/power-parser \
+              --input "$input" \
+              --output-dir data \
+              --config config/power-metrics.json \
+              --raw-url "$raw_url" \
+              --skip-processed
+          done < .build/new-logs.tsv
+
+      - name: Commit derived data
+        run: |
+          if git diff --quiet -- data; then
+            echo "No derived data changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git commit -m "Ingest power logs from logs branch"
+          git push origin main
+
+  deploy:
+    needs: ingest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy-pages.yml

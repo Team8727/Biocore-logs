@@ -1,0 +1,16 @@
+{
+  "team_number": 0,
+  "roborio_host": "roborio-0000-frc.local",
+  "roborio_user": "lvuser",
+  "remote_log_dir": "/home/lvuser/logs",
+  "repo_url": "https://github.com/YOUR_ORG/Biocore-logs.git",
+  "repo_path": ".",
+  "logs_branch": "logs",
+  "logs_clone_dir": ".logs-branch",
+  "queue_dir": ".upload-queue",
+  "archive_dir": ".upload-archive",
+  "state_file": ".upload-state.json",
+  "max_file_mb": 50,
+  "git_user_name": "Biocore Log Bot",
+  "git_user_email": "logs@biocore.local"
+}
